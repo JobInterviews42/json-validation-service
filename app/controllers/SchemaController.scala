@@ -15,12 +15,12 @@ import scala.util.{Failure, Success, Try}
 class SchemaController @Inject()(val controllerComponents: ControllerComponents, repository: AsyncRepository)
                                 (implicit executionContext: ExecutionContext) extends BaseController with Logging {
 
-  def uploadSchema(schemaId: String) = Action.async(parse.raw) { request =>
+  def uploadSchema(schemaId: String) = Action.async { request =>
     Try {
-      request.body.asBytes().map(_.utf8String)
+      request.body.asRaw.get.asBytes().get.utf8String
       //TODO add schema validation here
     } match {
-      case Success(Some(value)) =>
+      case Success(value) =>
         val minifiedJson = Json.stringify(Json.parse(value))
         repository.storeSchema(Schema(schemaId, minifiedJson)).map {
           case Left(1) => Created(Json.toJson(OperationResult(ServiceAction.UploadSchema, schemaId, OperationStatus.Success)))
@@ -30,6 +30,11 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
           case Right(exception) =>
             val response = OperationResult(ServiceAction.UploadSchema, schemaId, OperationStatus.Error, Option(exception.getMessage))
             getResponseByException(exception, response)
+        }.recover {
+          case ex: Exception =>
+            val response = OperationResult(ServiceAction.UploadSchema, schemaId, OperationStatus.Error, Option(ex.getMessage))
+            logger.error(s"A call to repository has crashed while uploading schema with id $schemaId", ex)
+            getResponseByException(ex, response)
         }
       case Failure(exception) =>
         logger.error("Error parsing json schema", exception)

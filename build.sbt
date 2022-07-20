@@ -15,7 +15,8 @@ libraryDependencies ++= Seq(
 )
 libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
-  "org.mockito" % "mockito-core" % "4.6.1" % Test
+  "org.mockito" % "mockito-core" % "4.6.1" % Test,
+  "com.h2database" % "h2" % "1.4.192" % Test
 )
 
 // Adds additional packages into Twirl

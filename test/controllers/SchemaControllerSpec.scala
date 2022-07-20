@@ -9,7 +9,6 @@ import play.api.test.{FakeRequest, Helpers}
 import repository.AsyncRepository
 import play.api.test.Helpers._
 import org.mockito.Mockito._
-import play.mvc.Http
 import models.PlayJsonSupportInTests._
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -25,10 +24,11 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
     val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
 
     val response = controller.getSchema("test-id")(FakeRequest())
+    contentType(response) shouldBe Some("application/json")
     val responseContent = contentAsJson(response).as[Schema]
 
     responseContent shouldBe testSchema
-    status(response) shouldBe Http.Status.OK
+    status(response) shouldBe OK
   }
 
   it should "return error status if schema by a given id doesn't exist" in {
@@ -40,7 +40,8 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
 
     val response = controller.getSchema("test-id")(FakeRequest())
 
-    status(response) shouldBe Http.Status.NOT_FOUND
+    status(response) shouldBe NOT_FOUND
+    contentType(response) shouldBe Some("application/json")
     assertResult(contentAsJson(response).as[OperationResult], ServiceAction.GetSchema,
       "test-id", OperationStatus.Error, Option(exception.getMessage))
   }
@@ -54,7 +55,8 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
 
     val response = controller.getSchema("test-id")(FakeRequest())
 
-    status(response) shouldBe Http.Status.INTERNAL_SERVER_ERROR
+    status(response) shouldBe INTERNAL_SERVER_ERROR
+    contentType(response) shouldBe Some("application/json")
     assertResult(contentAsJson(response).as[OperationResult], ServiceAction.GetSchema,
       "test-id", OperationStatus.Error, Option(exception.getMessage))
   }

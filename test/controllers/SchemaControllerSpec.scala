@@ -61,6 +61,21 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
       "test-id", OperationStatus.Error, Option(exception.getMessage))
   }
 
+  it should "return internal server error if async call to repository crashed" in {
+    val repositoryMock = mock[AsyncRepository]
+    val exception = new RuntimeException("Unknown error")
+    when(repositoryMock.getSchema(anyString())).thenReturn(Future.failed(exception))
+
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
+
+    val response = controller.getSchema("test-id")(FakeRequest())
+
+    status(response) shouldBe INTERNAL_SERVER_ERROR
+    contentType(response) shouldBe Some("application/json")
+    assertResult(contentAsJson(response).as[OperationResult], ServiceAction.GetSchema,
+      "test-id", OperationStatus.Error, Option(exception.getMessage))
+  }
+
   private def assertResult(result: OperationResult, expectedAction: ServiceAction,
                            expectedId: String, expectedStatus: OperationStatus, expectedMessage: Option[String]) = {
     inside(result) {

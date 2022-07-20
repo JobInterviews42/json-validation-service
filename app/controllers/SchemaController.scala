@@ -25,6 +25,11 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
         val response = OperationResult(ServiceAction.GetSchema, schemaId, OperationStatus.Error, Option(exception.getMessage))
         logger.error(s"Error while reading schema with id $schemaId", exception)
         getErrorResponse(exception, response)
+    }.recover {
+      case ex: Exception =>
+        val response = OperationResult(ServiceAction.GetSchema, schemaId, OperationStatus.Error, Option(ex.getMessage))
+        logger.error(s"A call to repository has crashed while reading schema with id $schemaId", ex)
+        getErrorResponse(ex, response)
     }
   }
 

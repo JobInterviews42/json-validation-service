@@ -1,50 +1,35 @@
 package controllers
 
+import org.mockito.Mockito.when
+import org.scalatest.{FlatSpec, Matchers}
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.scalatestplus.play._
-import org.scalatestplus.play.guice._
+import play.api.libs.json.{JsArray, JsValue}
 import play.api.routing.Router
-import play.api.test._
 import play.api.test.Helpers._
+import play.api.test._
 
 import javax.inject.Provider
 
-/**
- * Add your spec here.
- * You can mock out a whole application including requests, plugins etc.
- *
- * For more information, see https://www.playframework.com/documentation/latest/ScalaTestingWithScalaTest
- */
-class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
+class HomeControllerSpec extends FlatSpec with Matchers {
 
-  "HomeController GET" should {
-
-    "render the index page from a new instance of controller" in {
+    "HomeController" should "render the index page from a new instance of controller" in {
+      val routes = Seq(("GET", "/test1", "invocation1"), ("POST", "/test2", "invocation2"))
+      val routerMock = mock[Router]
+      when(routerMock.documentation).thenReturn(routes)
       val routerProviderMock = mock[Provider[Router]]
+      //mockito deep stubs didn't work out here because of T taken by Provider
+      when(routerProviderMock.get()).thenReturn(routerMock)
+
       val controller = new HomeController(stubControllerComponents(), routerProviderMock)
-      val home = controller.index().apply(FakeRequest(GET, "/"))
+      val response = controller.index().apply(FakeRequest(GET, "/"))
 
-      status(home) mustBe OK
-      contentType(home) mustBe Some("text/html")
-      contentAsString(home) must include ("Welcome to Play")
+      status(response) shouldBe OK
+      contentType(response) shouldBe Some("application/json")
+      val jsonResponse = contentAsJson(response)
+      val actualRoutes = (jsonResponse \ "routes").get.as[JsArray].value.map {
+        case item: JsValue => (item("method").as[String], item("path").as[String])
+      }.toList
+
+      actualRoutes should contain theSameElementsAs routes.map{case (method, path, _) => (method, path)}
     }
-
-    "render the index page from the application" in {
-      val controller = inject[HomeController]
-      val home = controller.index().apply(FakeRequest(GET, "/"))
-
-      status(home) mustBe OK
-      contentType(home) mustBe Some("text/html")
-      contentAsString(home) must include ("Welcome to Play")
-    }
-
-    "render the index page from the router" in {
-      val request = FakeRequest(GET, "/")
-      val home = route(app, request).get
-
-      status(home) mustBe OK
-      contentType(home) mustBe Some("text/html")
-      contentAsString(home) must include ("Welcome to Play")
-    }
-  }
 }

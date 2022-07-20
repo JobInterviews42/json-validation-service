@@ -7,7 +7,11 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.13.8"
 
-libraryDependencies += guice
+libraryDependencies ++= Seq(
+  guice,
+  jdbc,
+  "org.xerial" % "sqlite-jdbc" % "3.36.0.3"
+)
 libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
   "org.mockito" % "mockito-core" % "4.6.1" % Test

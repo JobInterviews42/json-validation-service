@@ -10,6 +10,7 @@ scalaVersion := "2.13.8"
 libraryDependencies ++= Seq(
   guice,
   jdbc,
+  evolutions,
   "org.xerial" % "sqlite-jdbc" % "3.36.0.3"
 )
 libraryDependencies ++= Seq(

@@ -13,7 +13,7 @@ class SQLiteRepositorySpec extends FlatSpec with Matchers with ScalaFutures with
 
   private val sqliteDriver = "org.sqlite.JDBC"
   private val dbUrl = "jdbc:sqlite:repository-test.db"
-  private val defautlTestSchema = Schema("test-id", "raw")
+  private val defaultTestSchema = Schema("test-id", "raw")
 
   "SQLiteRepository" should "insert schema if such id doesn't exist yet" in {
     Databases.withDatabase(
@@ -23,7 +23,7 @@ class SQLiteRepositorySpec extends FlatSpec with Matchers with ScalaFutures with
       Evolutions.withEvolutions(database) {
         val repository = new SQLiteRepository(database)
 
-        whenReady(repository.storeSchema(defautlTestSchema)) { result =>
+        whenReady(repository.storeSchema(defaultTestSchema)) { result =>
           result shouldBe Left(1)
         }
       }
@@ -38,10 +38,10 @@ class SQLiteRepositorySpec extends FlatSpec with Matchers with ScalaFutures with
       Evolutions.withEvolutions(database) {
         val repository = new SQLiteRepository(database)
 
-        whenReady(repository.storeSchema(defautlTestSchema)) { result =>
-          result shouldBe Left(1)
-          whenReady(repository.storeSchema(defautlTestSchema)) { result =>
-            result.toOption.value shouldBe a[AlreadyExistsException]
+        whenReady(repository.storeSchema(defaultTestSchema)) { first =>
+          first shouldBe Left(1)
+          whenReady(repository.storeSchema(defaultTestSchema)) { second =>
+            second.toOption.value shouldBe a[AlreadyExistsException]
           }
         }
       }

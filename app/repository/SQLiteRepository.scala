@@ -13,7 +13,7 @@ class SQLiteRepository @Inject()(database: Database)(implicit executionContext: 
   private val insertSchemaSql = "INSERT INTO JsonSchema (id, rawSchema) VALUES(?, ?)"
 
   override def storeSchema(schema: Schema): Future[Either[Int, Exception]] = getSchema(schema.schemaId).map {
-    case Left(_) => Right(AlreadyExistsException(s"Schema with id ${schema.schemaId} already exists"))
+    case Left(_) => Right(AlreadyExistsException(s"Schema with id '${schema.schemaId}' already exists"))
     case Right(NotFoundException(_)) => Left(insertSchema(schema))
     case Right(other) => Right(other) //other exceptions are propagated as is
   }

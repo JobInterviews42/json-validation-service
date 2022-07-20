@@ -19,14 +19,13 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
   }
 
   def getSchema(schemaId: String): Action[AnyContent] = Action.async {
-    repository.getSchema(schemaId).map{
+    repository.getSchema(schemaId).map {
       case Left(schema) => Ok(Json.toJson(schema))
       case Right(exception) =>
         val response = OperationResult(ServiceAction.GetSchema, schemaId, OperationStatus.Error, Option(exception.getMessage))
         logger.error(s"Error while reading schema with id $schemaId", exception)
         getErrorResponse(exception, response)
     }
-    Future.successful(Ok(s"TODO: getSchema id $schemaId"))
   }
 
   def validate(schemaId: String): Action[AnyContent] = Action.async {

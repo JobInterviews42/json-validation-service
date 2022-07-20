@@ -1,10 +1,10 @@
 package controllers
 
-import javax.inject._
-import play.api._
 import play.api.libs.json.Json
 import play.api.mvc._
 import play.api.routing.Router
+
+import javax.inject._
 
 @Singleton
 class HomeController @Inject()(val controllerComponents: ControllerComponents, routerProvider: Provider[Router]) extends BaseController {

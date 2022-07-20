@@ -1,9 +1,13 @@
 package controllers
 
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play._
 import org.scalatestplus.play.guice._
+import play.api.routing.Router
 import play.api.test._
 import play.api.test.Helpers._
+
+import javax.inject.Provider
 
 /**
  * Add your spec here.
@@ -16,7 +20,8 @@ class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting
   "HomeController GET" should {
 
     "render the index page from a new instance of controller" in {
-      val controller = new HomeController(stubControllerComponents())
+      val routerProviderMock = mock[Provider[Router]]
+      val controller = new HomeController(stubControllerComponents(), routerProviderMock)
       val home = controller.index().apply(FakeRequest(GET, "/"))
 
       status(home) mustBe OK

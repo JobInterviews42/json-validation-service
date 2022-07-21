@@ -69,7 +69,7 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
         jsonValidationService.validateJson(preparedJson, schema.raw) match {
           case Left(_) => Ok(Json.toJson(OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Success)))
           case Right(validationErrors) =>
-            Ok(Json.toJson(OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Error, Option(validationErrors.mkString(", ")))))
+            BadRequest(Json.toJson(OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Error, Option(validationErrors.mkString(", ")))))
         }
 
       case Right(exception) =>

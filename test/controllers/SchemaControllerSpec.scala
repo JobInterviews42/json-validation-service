@@ -78,7 +78,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
   it should "upload schema if there is no schema with such id exists" in { fixture =>
     when(fixture.repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.successful(Left(1)))
 
-    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonSchemaV1)))
+    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withFormUrlEncodedBody((JsonHelper.validJsonSchemaV1, "")))
 
     status(response) shouldBe CREATED
     val result = contentAsJson(response).as[OperationResult]
@@ -89,7 +89,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
     val exception = AlreadyExistsException("schema already exists")
     when(fixture.repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.successful(Right(exception)))
 
-    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonSchemaV1)))
+    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withFormUrlEncodedBody((JsonHelper.validJsonSchemaV1, "")))
 
     status(response) shouldBe CONFLICT
     val result = contentAsJson(response).as[OperationResult]
@@ -98,7 +98,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
 
   it should "return internal server error if a call to repository crashed during schema upload" in { fixture =>
     when(fixture.repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.failed(runtimeException))
-    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonSchemaV1)))
+    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withFormUrlEncodedBody((JsonHelper.validJsonSchemaV1, "")))
 
     status(response) shouldBe INTERNAL_SERVER_ERROR
     val result = contentAsJson(response).as[OperationResult]
@@ -109,7 +109,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
     when(fixture.repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Left(validSchema)))
     when(fixture.validationServiceMock.validateJson(anyString(), anyString())).thenReturn(Left())
 
-    val response = createController(fixture).validate(validSchema.schemaId)(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonV1)))
+    val response = createController(fixture).validate(validSchema.schemaId)(FakeRequest().withFormUrlEncodedBody((JsonHelper.validJsonV1, "")))
     status(response) shouldBe OK
     val result = contentAsJson(response).as[OperationResult]
     assertResult(result, ServiceAction.ValidateDocument, validSchema.schemaId, OperationStatus.Success, None)
@@ -129,7 +129,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
     when(fixture.repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Left(validSchema)))
     when(fixture.validationServiceMock.validateJson(anyString(), anyString())).thenReturn(Right(List(validationErrorMsg)))
 
-    val response = createController(fixture).validate("schemaId")(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonV1)))
+    val response = createController(fixture).validate("schemaId")(FakeRequest().withFormUrlEncodedBody((JsonHelper.validJsonV1, "")))
     status(response) shouldBe BAD_REQUEST
     val result = contentAsJson(response).as[OperationResult]
     assertResult(result, ServiceAction.ValidateDocument, "schemaId", OperationStatus.Error, Some(validationErrorMsg))

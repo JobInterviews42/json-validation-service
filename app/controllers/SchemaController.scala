@@ -61,11 +61,10 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
-  def validate(schemaId: String): Action[AnyContent] = Action.async { request =>
+  def validate(schemaId: String) = Action.async { request =>
     repository.getSchema(schemaId).map {
       case Left(schema) =>
-        val rawJsonDocument = getBody(request)
-        val preparedJson = Json.stringify(removeNulls(Json.parse(rawJsonDocument).as[JsObject]))
+       val preparedJson = Json.stringify(removeNulls(Json.parse(getBody(request)).as[JsObject]))
         jsonValidationService.validateJson(preparedJson, schema.raw) match {
           case Left(_) => Ok(Json.toJson(OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Success)))
           case Right(validationErrors) =>
@@ -84,6 +83,9 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
+  //such body extraction is quite questionable - but it was forced by curl -d arg (which sets 'application/x-www-form-urlencoded' content type)
+  private def getBody(request: Request[AnyContent]) = request.body.asFormUrlEncoded.getOrElse(Map.empty).keys.mkString
+
   private def getResponseByException(exception: Exception, response: OperationResult): Result = {
     val jsonResponse = Json.toJson(response)
     exception match {
@@ -93,8 +95,6 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
       case _ => InternalServerError(jsonResponse)
     }
   }
-
-  private def getBody(request: Request[AnyContent]): String = request.body.asRaw.get.asBytes().get.utf8String
 
   private def removeNulls(jsObject: JsObject): JsValue = {
     JsObject(jsObject.fields.collect {

@@ -11,7 +11,8 @@ libraryDependencies ++= Seq(
   guice,
   jdbc,
   evolutions,
-  "org.xerial" % "sqlite-jdbc" % "3.36.0.3"
+  "org.xerial" % "sqlite-jdbc" % "3.36.0.3",
+  "com.github.java-json-tools" % "json-schema-validator" % "2.2.14"
 )
 libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,

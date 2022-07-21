@@ -12,44 +12,22 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, Helpers}
 import repository.AsyncRepository
+import services.JsonValidationService
+import utils.JsonHelper
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
 
-  private val testSchema =
-    """
-      |{
-      |    "$schema": "http://json-schema.org/draft-04/schema#",
-      |    "title": "Product",
-      |    "description": "A product from the catalog",
-      |    "type": "object",
-      |    "properties": {
-      |        "id": {
-      |            "description": "The unique identifier for a product",
-      |            "type": "integer"
-      |        },
-      |        "name": {
-      |            "description": "Name of the product",
-      |            "type": "string"
-      |        },
-      |        "price": {
-      |            "type": "number",
-      |            "minimum": 0,
-      |            "exclusiveMinimum": true
-      |        }
-      |    },
-      |    "required": ["id", "name", "price"]
-      |}
-      |""".stripMargin
+
 
   "SchemaController" should "return a schema by a given id" in {
-    val schema = Schema("test-id", testSchema)
+    val schema = Schema("test-id", JsonHelper.validJsonSchemaV1)
     val repositoryMock = mock[AsyncRepository]
     when(repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Left(schema)))
 
-    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock, mock[JsonValidationService])
 
     val response = controller.getSchema("test-id")(FakeRequest())
     contentType(response) shouldBe Some("application/json")
@@ -64,7 +42,7 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
     val exception = NotFoundException("Schema is not found")
     when(repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Right(exception)))
 
-    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock, mock[JsonValidationService])
 
     val response = controller.getSchema("test-id")(FakeRequest())
 
@@ -79,7 +57,7 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
     val exception = new RuntimeException("Schema is not found")
     when(repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Right(exception)))
 
-    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock, mock[JsonValidationService])
 
     val response = controller.getSchema("test-id")(FakeRequest())
 
@@ -94,7 +72,7 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
     val exception = new RuntimeException("Unknown error")
     when(repositoryMock.getSchema(anyString())).thenReturn(Future.failed(exception))
 
-    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock, mock[JsonValidationService])
 
     val response = controller.getSchema("test-id")(FakeRequest())
 
@@ -108,8 +86,8 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
     val repositoryMock = mock[AsyncRepository]
     when(repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.successful(Left(1)))
 
-    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
-    val response = controller.uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(testSchema)))
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock, mock[JsonValidationService])
+    val response = controller.uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonSchemaV1)))
 
     status(response) shouldBe CREATED
     val result = contentAsJson(response).as[OperationResult]
@@ -121,8 +99,8 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
     val exception = AlreadyExistsException("schema already exists")
     when(repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.successful(Right(exception)))
 
-    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
-    val response = controller.uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(testSchema)))
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock, mock[JsonValidationService])
+    val response = controller.uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonSchemaV1)))
 
     status(response) shouldBe CONFLICT
     val result = contentAsJson(response).as[OperationResult]
@@ -134,8 +112,8 @@ class SchemaControllerSpec extends FlatSpec with Matchers with Inside {
     val exception = new RuntimeException("unknown error")
     when(repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.failed(exception))
 
-    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock)
-    val response = controller.uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(testSchema)))
+    val controller = new SchemaController(Helpers.stubControllerComponents(), repositoryMock, mock[JsonValidationService])
+    val response = controller.uploadSchema("test-id")(FakeRequest().withRawBody(ByteString(JsonHelper.validJsonSchemaV1)))
 
     status(response) shouldBe INTERNAL_SERVER_ERROR
     val result = contentAsJson(response).as[OperationResult]

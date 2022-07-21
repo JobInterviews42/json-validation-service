@@ -1,23 +1,27 @@
 package controllers
 
+import com.fasterxml.jackson.core.JsonParseException
 import exceptions.{AlreadyExistsException, NotFoundException}
 import models.{OperationResult, OperationStatus, Schema, ServiceAction}
-import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, Result}
+import play.api.mvc.{Action, AnyContent, BaseController, ControllerComponents, Request, Result}
 import repository.AsyncRepository
 import models.PlayJsonSupport._
 import play.api.Logging
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, JsNull, JsObject, JsValue, Json}
+import services.JsonValidationService
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-class SchemaController @Inject()(val controllerComponents: ControllerComponents, repository: AsyncRepository)
+class SchemaController @Inject()(val controllerComponents: ControllerComponents,
+                                 repository: AsyncRepository,
+                                 jsonValidationService: JsonValidationService)
                                 (implicit executionContext: ExecutionContext) extends BaseController with Logging {
 
   def uploadSchema(schemaId: String) = Action.async { request =>
     Try {
-      request.body.asRaw.get.asBytes().get.utf8String
+      getBody(request)
       //TODO add schema validation here
     } match {
       case Success(value) =>
@@ -57,8 +61,27 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
-  def validate(schemaId: String): Action[AnyContent] = Action.async {
-    Future.successful(Ok(s"TODO: validate schemaId $schemaId"))
+  def validate(schemaId: String): Action[AnyContent] = Action.async { request =>
+    repository.getSchema(schemaId).map {
+      case Left(schema) =>
+        val rawJsonDocument = getBody(request)
+        val preparedJson = Json.stringify(removeNulls(Json.parse(rawJsonDocument).as[JsObject]))
+        jsonValidationService.validateJson(preparedJson, schema.raw) match {
+          case Left(_) => Ok(Json.toJson(OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Success)))
+          case Right(validationErrors) =>
+            Ok(Json.toJson(OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Error, Option(validationErrors.mkString(", ")))))
+        }
+
+      case Right(exception) =>
+        val response = OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Error, Option(exception.getMessage))
+        logger.error(s"Error while validating json document against schema with id $schemaId", exception)
+        getResponseByException(exception, response)
+    }.recover {
+      case ex: Exception =>
+        val response = OperationResult(ServiceAction.ValidateDocument, schemaId, OperationStatus.Error, Option(ex.getMessage))
+        logger.error(s"A call to repository has crashed while validating json document using schemaId $schemaId", ex)
+        getResponseByException(ex, response)
+    }
   }
 
   private def getResponseByException(exception: Exception, response: OperationResult): Result = {
@@ -66,8 +89,28 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
     exception match {
       case NotFoundException(_) => NotFound(jsonResponse)
       case AlreadyExistsException(_) => Conflict(jsonResponse)
+      case _: JsonParseException => BadRequest(jsonResponse)
       case _ => InternalServerError(jsonResponse)
     }
+  }
+
+  private def getBody(request: Request[AnyContent]): String = request.body.asRaw.get.asBytes().get.utf8String
+
+  private def removeNulls(jsObject: JsObject): JsValue = {
+    JsObject(jsObject.fields.collect {
+      case (fieldName, fieldValue: JsObject) =>
+        (fieldName, removeNulls(fieldValue))
+
+      case (arrayName, arrayValue: JsArray) =>
+        val filteredItems = arrayValue.value.collect {
+          case objItem: JsObject => removeNulls(objItem)
+          case otherItem if otherItem != JsNull  => otherItem
+        }
+        (arrayName, JsArray(filteredItems))
+
+      case other if (other._2 != JsNull) =>
+        other
+    })
   }
 
 }

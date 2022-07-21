@@ -30,7 +30,7 @@ class SQLiteRepositorySpec extends FlatSpec with Matchers with ScalaFutures with
     }
   }
 
-  "SQLiteRepository" should "not allow to insert two schemas with the same id" in {
+  it should "not allow to insert two schemas with the same id" in {
     Databases.withDatabase(
       driver = sqliteDriver,
       url = dbUrl

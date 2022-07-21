@@ -107,7 +107,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
 
   it should "validate correct json successfully" in { fixture =>
     when(fixture.repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Left(validSchema)))
-    when(fixture.validationServiceMock.validateJson(anyString(), anyString())).thenReturn(Left())
+    when(fixture.validationServiceMock.validateJson(anyString(), anyString())).thenReturn(Left(()))
 
     val response = createController(fixture).validate(validSchema.schemaId)(FakeRequest().withFormUrlEncodedBody((JsonHelper.validJsonV1, "")))
     status(response) shouldBe OK

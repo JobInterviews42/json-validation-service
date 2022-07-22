@@ -1,6 +1,5 @@
 package controllers
 
-import akka.util.ByteString
 import exceptions.{AlreadyExistsException, NotFoundException}
 import models.PlayJsonSupportInTests._
 import models.{OperationResult, OperationStatus, Schema, ServiceAction}
@@ -78,7 +77,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
   it should "upload schema if there is no schema with such id exists" in { fixture =>
     when(fixture.repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.successful(Left(1)))
 
-    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withFormUrlEncodedBody((JsonSamples.validJsonSchemaV1, "")))
+    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withJsonBody(Json.parse(JsonSamples.validJsonSchemaV1)))
 
     status(response) shouldBe CREATED
     val result = contentAsJson(response).as[OperationResult]
@@ -89,16 +88,24 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
     val exception = AlreadyExistsException("schema already exists")
     when(fixture.repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.successful(Right(exception)))
 
-    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withFormUrlEncodedBody((JsonSamples.validJsonSchemaV1, "")))
+    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withJsonBody(Json.parse(JsonSamples.validJsonSchemaV1)))
 
     status(response) shouldBe CONFLICT
     val result = contentAsJson(response).as[OperationResult]
     assertResult(result, ServiceAction.UploadSchema, "test-id", OperationStatus.Error, Option(exception.message))
   }
 
+  it should "not upload schema if request body is not a json" in { fixture =>
+    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withTextBody(""))
+
+    status(response) shouldBe BAD_REQUEST
+    val result = contentAsJson(response).as[OperationResult]
+    result.status shouldBe OperationStatus.Error
+  }
+
   it should "return internal server error if a call to repository crashed during schema upload" in { fixture =>
     when(fixture.repositoryMock.storeSchema(any(classOf[Schema]))).thenReturn(Future.failed(runtimeException))
-    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withFormUrlEncodedBody((JsonSamples.validJsonSchemaV1, "")))
+    val response = createController(fixture).uploadSchema("test-id")(FakeRequest().withJsonBody(Json.parse(JsonSamples.validJsonSchemaV1)))
 
     status(response) shouldBe INTERNAL_SERVER_ERROR
     val result = contentAsJson(response).as[OperationResult]
@@ -109,7 +116,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
     when(fixture.repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Left(validSchema)))
     when(fixture.validationServiceMock.validateJson(anyString(), anyString())).thenReturn(Left(()))
 
-    val response = createController(fixture).validate(validSchema.schemaId)(FakeRequest().withFormUrlEncodedBody((JsonSamples.validJsonV1, "")))
+    val response = createController(fixture).validate(validSchema.schemaId)(FakeRequest().withJsonBody(Json.parse(JsonSamples.validJsonV1)))
     status(response) shouldBe OK
     val result = contentAsJson(response).as[OperationResult]
     assertResult(result, ServiceAction.ValidateDocument, validSchema.schemaId, OperationStatus.Successful, None)
@@ -118,10 +125,19 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
   it should "not validate json if specified schema doesn't exist" in { fixture =>
     when(fixture.repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Right(notFoundException)))
 
-    val response = createController(fixture).validate("nonExisting")(FakeRequest().withRawBody(ByteString(JsonSamples.validJsonV1)))
+    val response = createController(fixture).validate("nonExisting")(FakeRequest().withJsonBody(Json.parse(JsonSamples.validJsonV1)))
     status(response) shouldBe NOT_FOUND
     val result = contentAsJson(response).as[OperationResult]
     assertResult(result, ServiceAction.ValidateDocument, "nonExisting", OperationStatus.Error, Option(notFoundException.getMessage))
+  }
+
+  it should "not validate json if request body is not a json" in { fixture =>
+    when(fixture.repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Left(validSchema)))
+
+    val response = createController(fixture).validate("nonExisting")(FakeRequest().withTextBody(""))
+    status(response) shouldBe BAD_REQUEST
+    val result = contentAsJson(response).as[OperationResult]
+    result.status shouldBe OperationStatus.Error
   }
 
   it should "return error with error messages if json is not valid against specified schema" in { fixture =>
@@ -129,7 +145,7 @@ class SchemaControllerSpec extends fixture.FlatSpec with Matchers with Inside {
     when(fixture.repositoryMock.getSchema(anyString())).thenReturn(Future.successful(Left(validSchema)))
     when(fixture.validationServiceMock.validateJson(anyString(), anyString())).thenReturn(Right(List(validationErrorMsg)))
 
-    val response = createController(fixture).validate("schemaId")(FakeRequest().withFormUrlEncodedBody((JsonSamples.validJsonV1, "")))
+    val response = createController(fixture).validate("schemaId")(FakeRequest().withJsonBody(Json.parse(JsonSamples.validJsonV1)))
     status(response) shouldBe BAD_REQUEST
     val result = contentAsJson(response).as[OperationResult]
     assertResult(result, ServiceAction.ValidateDocument, "schemaId", OperationStatus.Error, Some(validationErrorMsg))

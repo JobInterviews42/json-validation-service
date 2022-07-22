@@ -2,8 +2,10 @@ package controllers
 
 import com.fasterxml.jackson.core.JsonParseException
 import exceptions.{AlreadyExistsException, NotFoundException}
+import models.OperationStatus._
 import models.PlayJsonSupport._
-import models.{OperationResult, OperationStatus, Schema, ServiceAction}
+import models.ServiceAction._
+import models.{OperationResult, Schema, ServiceAction}
 import play.api.Logging
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc._
@@ -14,21 +16,21 @@ import utils.JsonHelper
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-import ServiceAction._
-import OperationStatus._
 
 class SchemaController @Inject()(val controllerComponents: ControllerComponents,
                                  repository: AsyncRepository,
                                  jsonValidationService: JsonValidationService)
                                 (implicit executionContext: ExecutionContext) extends BaseController with Logging {
 
-  def uploadSchema(schemaId: String) = Action.async { request =>
+  private val jsonBodyNotRecognizedMessage = Some("Request body is not recognized as json or empty. Please check the Content-Type request header field")
+
+  def uploadSchema(schemaId: String): Action[AnyContent] = Action.async { request =>
     Try {
-      getBody(request)
+      request.body.asJson
       //TODO add schema validation here
     } match {
-      case Success(value) =>
-        val minifiedJson = Json.stringify(Json.parse(value))
+      case Success(Some(value)) =>
+        val minifiedJson = Json.stringify(value)
         repository.storeSchema(Schema(schemaId, minifiedJson)).map {
           case Left(1) => Created(Json.toJson(OperationResult(UploadSchema, schemaId, Successful)))
           case Left(_) =>
@@ -38,6 +40,8 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
         }.recover {
           case ex: Exception => respondWithError(UploadSchema, schemaId, ex)
         }
+      case Success(_) =>
+        Future(BadRequest(Json.toJson(OperationResult(UploadSchema, schemaId, Error, jsonBodyNotRecognizedMessage))))
       case Failure(exception) => Future(respondWithError(UploadSchema, schemaId, exception))
     }
   }
@@ -51,14 +55,18 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
     }
   }
 
-  def validate(schemaId: String) = Action.async { request =>
+  def validate(schemaId: String): Action[AnyContent] = Action.async { request =>
     repository.getSchema(schemaId).map {
       case Left(schema) =>
-       val preparedJson = Json.stringify(JsonHelper.removeNulls(Json.parse(getBody(request)).as[JsObject]))
-        jsonValidationService.validateJson(preparedJson, schema.raw) match {
-          case Left(_) => Ok(Json.toJson(OperationResult(ValidateDocument, schemaId, Successful)))
-          case Right(validationErrors) =>
-            BadRequest(Json.toJson(OperationResult(ValidateDocument, schemaId, Error, Option(validationErrors.mkString(", ")))))
+        request.body.asJson match {
+          case Some(body) =>
+            val preparedJson = Json.stringify(JsonHelper.removeNulls(body.as[JsObject]).as[JsObject])
+            jsonValidationService.validateJson(preparedJson, schema.raw) match {
+              case Left(_) => Ok(Json.toJson(OperationResult(ValidateDocument, schemaId, Successful)))
+              case Right(validationErrors) =>
+                BadRequest(Json.toJson(OperationResult(ValidateDocument, schemaId, Error, Option(validationErrors.mkString(", ")))))
+            }
+          case None => BadRequest(Json.toJson(OperationResult(ValidateDocument, schemaId, Error, jsonBodyNotRecognizedMessage)))
         }
       case Right(exception) => respondWithError(ValidateDocument, schemaId, exception)
     }.recover {
@@ -71,9 +79,6 @@ class SchemaController @Inject()(val controllerComponents: ControllerComponents,
     logger.error(s"Error occurred while performing action '${action.code}' for schemaId $schemaId", exception)
     getResponseByException(exception, response)
   }
-
-  //such body extraction is quite questionable - but it was forced by curl -d arg (which sets 'application/x-www-form-urlencoded' content type)
-  private def getBody(request: Request[AnyContent]) = request.body.asFormUrlEncoded.getOrElse(Map.empty).keys.mkString
 
   private def getResponseByException(exception: Throwable, response: OperationResult): Result = {
     val jsonResponse = Json.toJson(response)

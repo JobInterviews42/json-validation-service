@@ -1,7 +1,7 @@
 # json-validation-service
 A simple REST-service for validating JSON documents against JSON Schemas. 
 The service is powered by Play Framework (v. 2.8.16). 
-All uploaded json schemas are persisted into an embedded SQlite database
+All uploaded json schemas are persisted in an embedded SQlite database
 
 ## Requirements
 - Scala 2.13.8

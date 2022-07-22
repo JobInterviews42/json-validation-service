@@ -8,7 +8,7 @@ object PlayJsonSupportInTests {
 
   implicit object OperationStatusReads extends Reads[OperationStatus] {
     override def reads(json: JsValue): JsResult[OperationStatus] = json.as[JsString].value match {
-      case "success" => JsSuccess(OperationStatus.Success)
+      case "success" => JsSuccess(OperationStatus.Successful)
       case "error" => JsSuccess(OperationStatus.Error)
       case unsupported => JsError(s"Unsupported value for operation status: $unsupported")
     }

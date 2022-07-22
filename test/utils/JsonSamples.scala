@@ -1,6 +1,6 @@
 package utils
 
-object JsonHelper {
+object JsonSamples {
 
   val validJsonSchemaV1 =
     """{

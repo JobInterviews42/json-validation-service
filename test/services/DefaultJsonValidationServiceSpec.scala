@@ -2,7 +2,7 @@ package services
 
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.{FlatSpec, Matchers, OptionValues}
-import utils.JsonHelper._
+import utils.JsonSamples._
 
 class DefaultJsonValidationServiceSpec extends FlatSpec with Matchers with OptionValues with TableDrivenPropertyChecks {
 

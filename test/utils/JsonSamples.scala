@@ -70,4 +70,88 @@ object JsonSamples {
       |  }
       |}""".stripMargin
 
+  val validJsonWithNullsV2 =
+    """
+      |{
+      |	"random": null,
+      |	"random float": "5.466",
+      |	"bool": "true",
+      |	"date": "1989-11-26",
+      |	"regEx": "hellooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo to you",
+      |	"enum": "generator",
+      |	"firstname": "Joceline",
+      |	"lastname": "McLaughlin",
+      |	"city": "Murmansk",
+      |	"country": "Barbados",
+      |	"countryCode": "NP",
+      |	"email uses current data": "Joceline.McLaughlin@gmail.com",
+      |	"email from expression": "Joceline.McLaughlin@yopmail.com",
+      |	"array": [
+      |		"Heddie",
+      |		"Wynne",
+      |		"Gale",
+      |		"Marleah",
+      |		"Aili"
+      |	],
+      |	"array of objects": [
+      |		{
+      |			"index": "0",
+      |			"index start at 5": "5"
+      |		},
+      |		{
+      |			"index": "1",
+      |			"index start at 5": "6"
+      |		},
+      |		{
+      |			"index": "2",
+      |			"index start at 5": {"name": null }
+      |		}
+      |	],
+      |	"Frances": {
+      |		"age": null
+      |	}
+      |}
+      |""".stripMargin
+
+  val validJsonV2 =
+    """
+      |{
+      |	"random float": "5.466",
+      |	"bool": "true",
+      |	"date": "1989-11-26",
+      |	"regEx": "hellooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo to you",
+      |	"enum": "generator",
+      |	"firstname": "Joceline",
+      |	"lastname": "McLaughlin",
+      |	"city": "Murmansk",
+      |	"country": "Barbados",
+      |	"countryCode": "NP",
+      |	"email uses current data": "Joceline.McLaughlin@gmail.com",
+      |	"email from expression": "Joceline.McLaughlin@yopmail.com",
+      |	"array": [
+      |		"Heddie",
+      |		"Wynne",
+      |		"Gale",
+      |		"Marleah",
+      |		"Aili"
+      |	],
+      |	"array of objects": [
+      |		{
+      |			"index": "0",
+      |			"index start at 5": "5"
+      |		},
+      |		{
+      |			"index": "1",
+      |			"index start at 5": "6"
+      |		},
+      |		{
+      |			"index": "2",
+      |			"index start at 5": {}
+      |		}
+      |	],
+      |	"Frances": {
+      |	}
+      |}
+      |""".stripMargin
+
 }
